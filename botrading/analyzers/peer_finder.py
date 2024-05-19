@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.ensemble import RandomForestRegressor
 from scipy.stats import pearsonr
-from ..enums import Statsethod
+from ..enums import StatsMethod
 
 
 class PeerFinder:
