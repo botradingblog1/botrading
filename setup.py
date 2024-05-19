@@ -20,6 +20,7 @@ setup(
         'pytz>=2024.1',
         'matplotlib>=3.7.5<=3.8.0',
         'seaborn>=0.13.2',
+        'plotly>=5.22.0',
         'alpaca-py>=0.21.1',
         'ntplib>=0.4.0',
         'yfinance>=0.2.38',
