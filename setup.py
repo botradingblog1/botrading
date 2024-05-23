@@ -24,7 +24,9 @@ setup(
         'alpaca-py>=0.21.1',
         'ntplib>=0.4.0',
         'yfinance>=0.2.38',
-        'PyWavelet>=0.0.1b0'
+        'pandas_ta>=0.3.14b0'
+        'PyWavelet>=0.0.1b0',
+        'scikit-learn>=1.4.2'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

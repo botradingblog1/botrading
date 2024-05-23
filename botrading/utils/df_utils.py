@@ -67,7 +67,7 @@ def standardize_ohlcv_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def check_ohlc_dataframe(df: pd.DataFrame, min_length: int) -> bool:
+def check_ohlc_dataframe(df: pd.DataFrame, min_length: int = 10) -> bool:
     """
     Checks the validity of an OHLC dataframe.
 
@@ -78,7 +78,7 @@ def check_ohlc_dataframe(df: pd.DataFrame, min_length: int) -> bool:
     Returns:
         bool: True if the dataframe is valid, False otherwise.
     """
-    required_columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+    required_columns = ['open', 'high', 'low', 'close', 'volume']
 
     # Check if dataframe is None
     if df is None:
