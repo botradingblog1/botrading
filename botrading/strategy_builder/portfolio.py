@@ -1,39 +1,35 @@
+
 class Portfolio:
-    """
-    Represents a portfolio of trades.
-    """
+    def __init__(self, name, owner):
+        self.name = name
+        self.owner = owner
+        self.groups = {}
 
-    def __init__(self):
-        """
-        Initializes a new portfolio.
-        """
-        self.trades = []
+    def __repr__(self):
+        return f"Portfolio(name={self.name}, owner={self.owner}, groups={self.groups})"
 
-    def add_trade(self, trade):
-        """
-        Adds a trade to the portfolio.
+    def add_group(self, group):
+        if group.name in self.groups:
+            print(f"Error: Group {group.name} already exists.")
+        else:
+            self.groups[group.name] = group
 
-        Parameters:
-            trade (Trade): The trade to add.
-        """
-        self.trades.append(trade)
+    def remove_group(self, group_name):
+        if group_name in self.groups:
+            del self.groups[group_name]
+        else:
+            print(f"Error: Group {group_name} not found.")
 
-    def equity_curve(self):
-        """
-        Calculates and returns the equity curve.
+    def get_total_market_value(self):
+        total_value = 0
+        for group in self.groups.values():
+            total_value += group.get_market_value()
+        return total_value
 
-        Returns:
-            pd.Series: The equity curve.
-        """
-        # Calculate and return the equity curve
-        pass
+    def list_holdings(self):
+        all_holdings = []
+        for group_name, group in self.groups.items():
+            for security, quantity in group.list_holdings():
+                all_holdings.append((group_name, security, quantity))
+        return all_holdings
 
-    def metrics(self):
-        """
-        Calculates and returns performance metrics like drawdown, Sharpe ratio, etc.
-
-        Returns:
-            dict: A dictionary of performance metrics.
-        """
-        # Calculate and return performance metrics
-        pass

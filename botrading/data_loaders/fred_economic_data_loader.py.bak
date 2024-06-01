@@ -6,7 +6,7 @@ from datetime import datetime
 from ..enums import EconomicIndicators
 
 
-class FredDataLoader:
+class FredEconomicDataLoader:
     """
     Fetches data using FRED Data API
     """
@@ -15,7 +15,7 @@ class FredDataLoader:
         """
         Initializes the FredDataLoader with necessary configurations.
         """
-        self._name = "FredDataLoader"
+        self._name = "FredEconomicDataLoader"
 
     def fetch_fred_data(self, code_list, start_date_str, end_date_str):
         """

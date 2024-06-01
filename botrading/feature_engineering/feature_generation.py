@@ -6,7 +6,44 @@ from ..enums import *
 from ..strategy_builder.indicator import Indicator
 from ..utils.df_utils import check_ohlc_dataframe
 from sklearn.cluster import AgglomerativeClustering
-from ..utils.indicator_utils import *
+from typing import List
+
+
+def SMA(timeperiod=200):
+    return Indicator(name=IndicatorType.SMA, indicator_type=IndicatorType.SMA, params={'timeperiod': timeperiod}, is_price_based=True)
+
+def EMA(timeperiod=3):
+    return Indicator(name=IndicatorType.EMA, indicator_type=IndicatorType.EMA, params={'timeperiod': timeperiod}, is_price_based=True)
+
+def DM(timeperiod=14):
+    return Indicator(name=IndicatorType.DM, indicator_type=IndicatorType.DM, params={'timeperiod': timeperiod}, is_price_based=False)
+
+def FisherTransform(length=9):
+    return Indicator(name=IndicatorType.FISHER_TRANSFORM, indicator_type=IndicatorType.FISHER_TRANSFORM, params={'length': length}, is_price_based=False)
+
+def WilliamsR(timeperiod=14):
+    return Indicator(name=IndicatorType.WILLIAMSR, indicator_type=IndicatorType.WILLIAMSR, params={'timeperiod': timeperiod}, is_price_based=False)
+
+def RSI(timeperiod=14):
+    return Indicator(name=IndicatorType.RSI, indicator_type=IndicatorType.RSI, params={'timeperiod': timeperiod}, is_price_based=False)
+
+def MACD(fastperiod=12, slowperiod=26, signalperiod=9):
+    return Indicator(name=IndicatorType.MACD, indicator_type=IndicatorType.MACD, params={'fastperiod': fastperiod, 'slowperiod': slowperiod, 'signalperiod': signalperiod}, is_price_based=True)
+
+def BBANDS(timeperiod=20, nbdevup=2, nbdevdn=2):
+    return Indicator(name=IndicatorType.BBANDS, indicator_type=IndicatorType.BBANDS, params={'timeperiod': timeperiod, 'nbdevup': nbdevup, 'nbdevdn': nbdevdn}, is_price_based=True)
+
+def ATR(timeperiod=14):
+    return Indicator(name=IndicatorType.ATR, indicator_type=IndicatorType.ATR, params={'timeperiod': timeperiod}, is_price_based=True)
+
+def OBV():
+    return Indicator(name=IndicatorType.OBV, indicator_type=IndicatorType.OBV, params={}, is_price_based=False)
+
+def LAG(period=1):
+    return Indicator(name=IndicatorType.LAG, indicator_type=IndicatorType.LAG, params={'period': period}, is_price_based=False)
+
+def DELTA(period=1):
+    return Indicator(name=IndicatorType.DELTA, indicator_type=IndicatorType.DELTA, params={'period': period}, is_price_based=False)
 
 
 def add_future_returns(df: pd.DataFrame, num_periods: int) -> pd.DataFrame:
@@ -29,7 +66,7 @@ def add_future_returns(df: pd.DataFrame, num_periods: int) -> pd.DataFrame:
     return df
 
 
-def add_indicators(df: pd.DataFrame, indicators) -> pd.DataFrame:
+def add_indicators(df: pd.DataFrame, indicators: List[Indicator]) -> pd.DataFrame:
     """
     Adds features to the OHLC data frame.
 
@@ -66,172 +103,166 @@ def add_delta(df: pd.DataFrame, period: int) -> pd.DataFrame:
     return df
 
 
-def add_ao(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['AO'] = ta.ao(df['high'], df['low'], **params)
-    return df
-
-
 def add_apo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['APO'] = talib.APO(df['close'], **params)
+    column_name = f"APO_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}"
+    df[column_name] = talib.APO(df['close'], **params)
     return df
-
 
 def add_macd(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['MACD'], df['MACD_signal'], df['MACD_hist'] = talib.MACD(df['close'], **params)
+    column_name_macd = f"MACD_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}_sigp{params.get('signalperiod', '')}"
+    macd, macd_signal, macd_hist = talib.MACD(df['close'], **params)
+    df[column_name_macd] = macd
+    df[f'{column_name_macd}_signal'] = macd_signal
+    df[f'{column_name_macd}_hist'] = macd_hist
     return df
-
 
 def add_rsi(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['RSI'] = talib.RSI(df['close'], **params)
+    column_name = f"RSI_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.RSI(df['close'], **params)
     return df
 
-
-def add_bop(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['BOP'] = talib.BOP(df['open'], df['high'], df['low'], df['close'])
+def add_bbands(df: pd.DataFrame, **params) -> pd.DataFrame:
+    timeperiod = params.get('timeperiod', '')
+    upper, middle, lower = talib.BBANDS(df['close'], **params)
+    df[f"BBAND_UPPER_tp{timeperiod}"] = upper
+    df[f"BBAND_MIDDLE_tp{timeperiod}"] = middle
+    df[f"BBAND_LOWER_tp{timeperiod}"] = lower
     return df
 
+def add_sma(df: pd.DataFrame, **params) -> pd.DataFrame:
+    column_name = f"SMA_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.SMA(df['close'], **params)
+    return df
+
+def add_ema(df: pd.DataFrame, **params) -> pd.DataFrame:
+    column_name = f"EMA_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.EMA(df['close'], **params)
+    return df
 
 def add_cci(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['CCI'] = talib.CCI(df['high'], df['low'], df['close'], **params)
+    column_name = f"CCI_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.CCI(df['high'], df['low'], df['close'], **params)
     return df
-
 
 def add_cmo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['CMO'] = talib.CMO(df['close'], **params)
+    column_name = f"CMO_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.CMO(df['close'], **params)
     return df
-
 
 def add_dm(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['DI_POS'], df['DI_NEG'] = talib.PLUS_DM(df['high'], df['low'], **params), talib.MINUS_DM(df['high'], df['low'], **params)
+    timeperiod = params.get('timeperiod', '')
+    df[f'DI_POS_tp{timeperiod}'] = talib.PLUS_DM(df['high'], df['low'], **params)
+    df[f'DI_NEG_tp{timeperiod}'] = talib.MINUS_DM(df['high'], df['low'], **params)
     return df
-
 
 def add_mom(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['MOM'] = talib.MOM(df['close'], **params)
+    column_name = f"MOM_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.MOM(df['close'], **params)
     return df
-
 
 def add_ppo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['PPO'] = talib.PPO(df['close'], **params)
+    column_name = f"PPO_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}"
+    df[column_name] = talib.PPO(df['close'], **params)
     return df
-
 
 def add_roc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['ROC'] = talib.ROC(df['close'], **params)
+    column_name = f"ROC_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.ROC(df['close'], **params)
     return df
-
 
 def add_trix(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['TRIX'] = talib.TRIX(df['close'], **params)
+    column_name = f"TRIX_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.TRIX(df['close'], **params)
     return df
-
 
 def add_uo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['UO'] = talib.ULTOSC(df['high'], df['low'], df['close'], **params)
+    timeperiod1 = params.get('timeperiod1', '')
+    timeperiod2 = params.get('timeperiod2', '')
+    timeperiod3 = params.get('timeperiod3', '')
+    column_name = f"UO_tp1{timeperiod1}_tp2{timeperiod2}_tp3{timeperiod3}"
+    df[column_name] = talib.ULTOSC(df['high'], df['low'], df['close'], **params)
     return df
-
 
 def add_williamsr(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['WILLIAMSR'] = talib.WILLR(df['high'], df['low'], df['close'], **params)
+    column_name = f"WILLIAMSR_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.WILLR(df['high'], df['low'], df['close'], **params)
     return df
-
 
 def add_fisher_transform(df: pd.DataFrame, **params) -> pd.DataFrame:
-    temp_df = ta.fisher(high=df['high'], low=df['low'], **params)
     length = params.get('length', 9)
-    df['FISHER_TRANSFORM'] = temp_df[f'FISHERT_{length}_1']
-    df['FISHER_TRANSFORM_SIGNAL'] = temp_df[f'FISHERTs_{length}_1']
+    column_name = f"FISHER_TRANSFORM_len{length}"
+    temp_df = ta.fisher(high=df['high'], low=df['low'], **params)
+    df[column_name] = temp_df[f'FISHERT_{length}_1']
+    df[f'{column_name}_signal'] = temp_df[f'FISHERTs_{length}_1']
     return df
-
 
 def add_adx(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['ADX'] = talib.ADX(df['high'], df['low'], df['close'], **params)
+    column_name = f"ADX_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.ADX(df['high'], df['low'], df['close'], **params)
     return df
-
 
 def add_aroon(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['AROON_down'], df['AROON_up'] = talib.AROON(df['high'], df['low'], **params)
+    timeperiod = params.get('timeperiod', '')
+    df[f'AROON_down_tp{timeperiod}'], df[f'AROON_up_tp{timeperiod}'] = talib.AROON(df['high'], df['low'], **params)
     return df
-
 
 def add_psar(df: pd.DataFrame, **params) -> pd.DataFrame:
     df['PSAR'] = talib.SAR(df['high'], df['low'], **params)
     return df
 
-
 def add_low_bband(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['LOW_BBAND'], _, _ = talib.BBANDS(df['close'], **params)
+    column_name = f"LOW_BBAND_tp{params.get('timeperiod', '')}"
+    df[column_name], _, _ = talib.BBANDS(df['close'], **params)
     return df
-
 
 def add_high_bband(df: pd.DataFrame, **params) -> pd.DataFrame:
-    _, _, df['HIGH_BBAND'] = talib.BBANDS(df['close'], **params)
+    column_name = f"HIGH_BBAND_tp{params.get('timeperiod', '')}"
+    _, _, df[column_name] = talib.BBANDS(df['close'], **params)
     return df
-
 
 def add_low_donchian(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['LOW_DONCHIAN'] = ta.donchian(df['high'], df['low'], lower=True, **params)
+    column_name = f"LOW_DONCHIAN_tp{params.get('timeperiod', '')}"
+    df[column_name] = ta.donchian(df['high'], df['low'], lower=True, **params)
     return df
-
 
 def add_high_donchian(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['HIGH_DONCHIAN'] = ta.donchian(df['high'], df['low'], upper=True, **params)
+    column_name = f"HIGH_DONCHIAN_tp{params.get('timeperiod', '')}"
+    df[column_name] = ta.donchian(df['high'], df['low'], upper=True, **params)
     return df
-
 
 def add_low_kc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['LOW_KC'] = ta.kc(df['high'], df['low'], df['close'], lower=True, **params)
+    column_name = f"LOW_KC_tp{params.get('timeperiod', '')}"
+    df[column_name] = ta.kc(df['high'], df['low'], df['close'], lower=True, **params)
     return df
-
 
 def add_high_kc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['HIGH_KC'] = ta.kc(df['high'], df['low'], df['close'], upper=True, **params)
+    column_name = f"HIGH_KC_tp{params.get('timeperiod', '')}"
+    df[column_name] = ta.kc(df['high'], df['low'], df['close'], upper=True, **params)
     return df
-
 
 def add_ad(df: pd.DataFrame, **params) -> pd.DataFrame:
     df['AD'] = ta.ad(df['high'], df['low'], df['close'], df['volume'])
     return df
 
-
 def add_obv(df: pd.DataFrame, **params) -> pd.DataFrame:
     df['OBV'] = talib.OBV(df['close'], df['volume'])
     return df
 
-
 def add_cmf(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['CMF'] = ta.cmf(df['high'], df['low'], df['close'], df['volume'], **params)
+    column_name = f"CMF_tp{params.get('timeperiod', '')}"
+    df[column_name] = ta.cmf(df['high'], df['low'], df['close'], df['volume'], **params)
     return df
-
 
 def add_mfi(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['MFI'] = talib.MFI(df['high'], df['low'], df['close'], df['volume'], **params)
-    return df
-
-
-def add_sma(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['SMA'] = talib.SMA(df['close'], **params)
-    return df
-
-
-def add_ema(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['EMA'] = talib.EMA(df['close'], **params)
-    return df
-
-
-def add_bbands(df: pd.DataFrame, **params) -> pd.DataFrame:
-    upper, middle, lower = talib.BBANDS(
-        df['close'],
-        **params
-    )
-    df[f"BBAND_UPPER_{params['timeperiod']}"] = upper
-    df[f"BBAND_MIDDLE_{params['timeperiod']}"] = middle
-    df[f"BBAND_LOWER_{params['timeperiod']}"] = lower
+    column_name = f"MFI_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.MFI(df['high'], df['low'], df['close'], df['volume'], **params)
     return df
 
 def add_atr(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df[f"ATR_{params['timeperiod']}"] = talib.ATR(df['high'], df['low'], df['close'], **params)
+    column_name = f"ATR_tp{params.get('timeperiod', '')}"
+    df[column_name] = talib.ATR(df['high'], df['low'], df['close'], **params)
     return df
+
 
 def add_candlestick_patterns(df: pd.DataFrame, candlestick_patterns ) -> pd.DataFrame:
     """
@@ -266,70 +297,6 @@ def _apply_candlestick_pattern(df: pd.DataFrame, pattern: CandlestickPattern) ->
     df[f'{pattern}_CANDLE_PATTERN'] = func(df['open'], df['high'], df['low'], df['close'])
     return df
 
-
-def get_common_indicators() -> list:
-    """
-    Returns a list of common indicators.
-
-    Returns:
-        list: A list of Indicator objects for common indicators.
-    """
-    common_indicators = [
-        SMA(timeperiod=20),
-        SMA(timeperiod=50),
-        SMA(timeperiod=200),
-        EMA(timeperiod=3),
-        EMA(timeperiod=5),
-        EMA(timeperiod=8),
-        EMA(timeperiod=13),
-        DM(timeperiod=14),
-        FisherTransform(length=9),
-        WilliamsR(timeperiod=14),
-        RSI(timeperiod=3),
-        RSI(timeperiod=5),
-        RSI(timeperiod=8),
-        RSI(timeperiod=14),
-        MACD(fastperiod=12, slowperiod=26, signalperiod=9),
-        BBANDS(timeperiod=3, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=5, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=8, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=20, nbdevup=2, nbdevdn=2),
-        ATR(timeperiod=3),
-        ATR(timeperiod=5),
-        ATR(timeperiod=8),
-        ATR(timeperiod=14),
-        OBV(),
-        DELTA(period=1),
-        DELTA(period=3),
-        DELTA(period=5),
-        DELTA(period=8),
-        DELTA(period=13),
-    ]
-    return common_indicators
-
-
-def get_common_candlestick_patterns() -> list:
-    """
-    Returns a list of common candlestick patterns.
-
-    Returns:
-        list: A list of CandlestickPattern enums for common candlestick patterns.
-    """
-    common_candlestick_patterns = [
-        CandlestickPattern.CDL3WHITESOLDIERS,
-        CandlestickPattern.CDL3BLACKCROWS,
-        CandlestickPattern.CDLIDENTICAL3CROWS,
-        CandlestickPattern.CDL3LINESTRIKE,
-        CandlestickPattern.CDLMORNINGSTAR,
-        CandlestickPattern.CDLEVENINGSTAR,
-        CandlestickPattern.CDL3OUTSIDE,
-        CandlestickPattern.CDLENGULFING,
-        CandlestickPattern.CDLBELTHOLD,
-        CandlestickPattern.CDLABANDONEDBABY,
-        CandlestickPattern.CDLSEPARATINGLINES,
-        CandlestickPattern.CDLDOJISTAR,
-    ]
-    return common_candlestick_patterns
 
 
 def add_future_returns(df: pd.DataFrame, lookahead_period: int, source_column='close', target_column="future_returns") -> pd.DataFrame:
@@ -420,3 +387,72 @@ def add_support_resistance_levels(df: pd.DataFrame, window_size: int, num_cluste
     df['resistance_level'] = resistance_levels
 
     return df
+
+
+
+def get_common_indicators() -> list:
+    """
+    Returns a list of common indicators.
+
+    Returns:
+        list: A list of Indicator objects for common indicators.
+    """
+    common_indicators = [
+        SMA(timeperiod=20),
+        SMA(timeperiod=50),
+        SMA(timeperiod=200),
+        EMA(timeperiod=3),
+        EMA(timeperiod=5),
+        EMA(timeperiod=8),
+        EMA(timeperiod=13),
+        DM(timeperiod=14),
+        FisherTransform(length=9),
+        WilliamsR(timeperiod=14),
+        RSI(timeperiod=3),
+        RSI(timeperiod=5),
+        RSI(timeperiod=8),
+        RSI(timeperiod=14),
+        MACD(fastperiod=12, slowperiod=26, signalperiod=9),
+        BBANDS(timeperiod=3, nbdevup=2, nbdevdn=2),
+        BBANDS(timeperiod=5, nbdevup=2, nbdevdn=2),
+        BBANDS(timeperiod=8, nbdevup=2, nbdevdn=2),
+        BBANDS(timeperiod=20, nbdevup=2, nbdevdn=2),
+        ATR(timeperiod=3),
+        ATR(timeperiod=5),
+        ATR(timeperiod=8),
+        ATR(timeperiod=14),
+        OBV(),
+        DELTA(period=1),
+        DELTA(period=3),
+        DELTA(period=5),
+        DELTA(period=8),
+        DELTA(period=13),
+    ]
+    return common_indicators
+
+
+def get_common_candlestick_patterns() -> list:
+    """
+    Returns a list of common candlestick patterns.
+
+    Returns:
+        list: A list of CandlestickPattern enums for common candlestick patterns.
+    """
+    common_candlestick_patterns = [
+        CandlestickPattern.CDL3WHITESOLDIERS,
+        CandlestickPattern.CDL3BLACKCROWS,
+        CandlestickPattern.CDLIDENTICAL3CROWS,
+        CandlestickPattern.CDL3LINESTRIKE,
+        CandlestickPattern.CDLMORNINGSTAR,
+        CandlestickPattern.CDLEVENINGSTAR,
+        CandlestickPattern.CDL3OUTSIDE,
+        CandlestickPattern.CDLENGULFING,
+        CandlestickPattern.CDLBELTHOLD,
+        CandlestickPattern.CDLABANDONEDBABY,
+        CandlestickPattern.CDLSEPARATINGLINES,
+        CandlestickPattern.CDLDOJISTAR,
+    ]
+    return common_candlestick_patterns
+
+
+

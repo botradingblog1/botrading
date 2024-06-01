@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 from ..enums import TiingoDailyInterval, TiingoIntradayInterval, DataType
+from typing import List
 
 
 class TiingoDataLoader:
@@ -22,7 +23,7 @@ class TiingoDataLoader:
         """
         self.api_key = api_key
 
-    def fetch_tiingo_intraday_prices(self, symbol: str, start_date: str, end_date: str, interval: TiingoIntradayInterval, cache_data=False, cache_dir="cache") -> pd.DataFrame:
+    def fetch_intraday_prices(self, symbol: str, start_date_str: str, end_date_str: str, interval: TiingoIntradayInterval, cache_data=False, cache_dir="cache") -> pd.DataFrame:
         """
         Fetches stock prices from Tiingo API.
 
@@ -38,14 +39,16 @@ class TiingoDataLoader:
             pd.DataFrame: DataFrame with stock prices.
         """
         try:
-            file_name = f"{symbol}_{interval.value}_{start_date}_{end_date}.csv"
+            file_name = f"{symbol}_{interval.value}_{start_date_str}_{end_date_str}.csv"
             path = os.path.join(cache_dir, file_name)
 
             if cache_data and os.path.exists(path):
                 prices_df = pd.read_csv(path, parse_dates=['date'])
+                prices_df.set_index('date', inplace=True)
+                prices_df.index.name = 'date'
                 return prices_df
             else:
-                fetch_url = f"https://api.tiingo.com/iex/{symbol}/prices?startDate={start_date}&endDate={end_date}&resampleFreq={interval.value}&columns=date,open,high,low,close,volume&token={self.api_key}"
+                fetch_url = f"https://api.tiingo.com/iex/{symbol}/prices?startDate={start_date_str}&endDate={end_date_str}&resampleFreq={interval.value}&columns=date,open,high,low,close,volume&token={self.api_key}"
                 headers = {'Accept': 'application/json'}
 
                 response = requests.get(fetch_url, headers=headers)
@@ -70,18 +73,31 @@ class TiingoDataLoader:
                     prices_df = pd.concat([prices_df, row_df], axis=0, ignore_index=True)
 
                 prices_df['date'] = pd.to_datetime(prices_df['date'])
-                prices_df.reset_index(drop=True, inplace=True)
 
                 if cache_data:
                     os.makedirs(cache_dir, exist_ok=True)
                     prices_df.to_csv(path, index=False)
+
+                prices_df.set_index('date', inplace=True)
+                prices_df.index.name = 'date'
 
                 return prices_df
         except Exception as ex:
             print(f"Failed to fetch Tiingo prices: {ex}")
             return None
 
-    def fetch_tiingo_daily_prices(self, symbol: str, start_date: str, end_date: str, interval: TiingoDailyInterval, cache_data = False, cache_dir: str = "cache") -> pd.DataFrame:
+    def fetch_multiple_intraday_prices(self, symbol_list: List[str], start_date_str: str, end_date_str: str, interval: TiingoIntradayInterval, cache_data=False, cache_dir="cache") -> pd.DataFrame:
+        prices_dict = {}
+        for symbol in symbol_list:
+            print(f"Fetching prices for {symbol}")
+            # fetch prices
+            prices_df = self.fetch_intraday_prices(symbol, start_date_str, end_date_str,
+                                                                 interval, cache_data=cache_data,
+                                                                 cache_dir=cache_dir)
+            prices_dict[symbol] = prices_df
+        return prices_dict
+
+    def fetch_end_of_day_prices(self, symbol: str, start_date: str, end_date: str, interval: TiingoDailyInterval, cache_data = False, cache_dir: str = "cache") -> pd.DataFrame:
         """
         Fetches daily stock prices from Tiingo API.
 
@@ -101,6 +117,9 @@ class TiingoDataLoader:
 
             if cache_data is True and os.path.exists(path):
                 prices_df = pd.read_csv(path, parse_dates=['date'])
+                if 'date' in prices_df.columns:
+                    prices_df.set_index('date', inplace=True)
+                    prices_df.index.name = 'date'
                 return prices_df
             else:
                 fetch_url = f"https://api.tiingo.com/tiingo/daily/{symbol}/prices?startDate={start_date}&endDate={end_date}&resampleFreq={interval.value}&columns=date,open,high,low,close,volume&token={self.api_key}"
@@ -122,63 +141,38 @@ class TiingoDataLoader:
                     })
                     prices_df = pd.concat([prices_df, row_df], axis=0, ignore_index=True)
 
-                prices_df.reset_index(drop=True, inplace=True)
+
                 if cache_data is True:
                     os.makedirs(cache_dir, exist_ok=True)
                     prices_df.to_csv(path, index=False)
+
+                prices_df.set_index('date', inplace=True)
+                prices_df.index.name = 'date'
 
                 return prices_df
         except Exception as ex:
             print(f"Failed to fetch Tiingo prices: {ex}")
             return None
 
-    def fetch_tiingo_crypto_prices(self, symbol: str, start_date: str, end_date: str, data_dir: str = "data") -> pd.DataFrame:
+    def fetch_multiple_end_of_day_prices(self, symbol_list: List[str], start_date_str: str, end_date_str: str, interval=TiingoDailyInterval.DAILY, cache_data=False, cache_dir="cache") -> pd.DataFrame:
         """
-        Fetches crypto prices from Tiingo API.
+         Fetches daily prices for multiple symbols.
 
-        Parameters:
-            symbol (str): Crypto symbol.
-            start_date (str): Start date in 'YYYY-MM-DD' format.
-            end_date (str): End date in 'YYYY-MM-DD' format.
-            data_dir (str): Directory to save the data.
+         Parameters:
+         symbol_list (List[str]): List of stock symbols.
+         start_date_str (str): Start date in 'YYYY-MM-DD' format.
+         end_date_str (str): End date in 'YYYY-MM-DD' format.
+         interval (TiingoDailyInterval): The interval, e.g. daily, weekly, monthly
+         cache_data (bool): Flag to specify if data should be cached. Default is False.
+         cache_dir (str): Directory to cache the data. Default is "cache".
 
-        Returns:
-            pd.DataFrame: DataFrame with crypto prices.
-        """
-        try:
-            print(f"Loading crypto prices for {symbol}")
-            file_name = f"{symbol}_crypto_{start_date}_{end_date}.csv"
-            path = os.path.join(data_dir, file_name)
-
-            if os.path.exists(path):
-                prices_df = pd.read_csv(path, parse_dates=['date'])
-                return prices_df
-            else:
-                fetch_url = f"https://api.tiingo.com/tiingo/crypto/prices?tickers={symbol}&startDate={start_date}&endDate={end_date}&token={self.api_key}"
-                headers = {'Accept': 'application/json'}
-
-                response = requests.get(fetch_url, headers=headers)
-                data = response.json()
-
-                prices_df = pd.DataFrame()
-                for row in data[0]['priceData']:
-                    row_df = pd.DataFrame({
-                        'date': [row['date']],
-                        'open': [row['open']],
-                        'high': [row['high']],
-                        'low': [row['low']],
-                        'close': [row['close']],
-                        'volume': [row['volume']]
-                    })
-                    prices_df = pd.concat([prices_df, row_df], axis=0, ignore_index=True)
-
-                prices_df.reset_index(drop=True, inplace=True)
-                os.makedirs(data_dir, exist_ok=True)
-                prices_df.to_csv(path, index=False)
-
-                return prices_df
-        except Exception as ex:
-            print(f"Failed to fetch Tiingo crypto prices: {ex}")
-            return None
-
-    # Additional methods for other Tiingo APIs like news and forex can be added here
+         Returns:
+         pd.DataFrame: DataFrame containing the daily prices for multiple symbols.
+         """
+        prices_dict = {}
+        for symbol in symbol_list:
+            print(f"Fetching prices for {symbol}")
+            # fetch prices
+            prices_df = self.fetch_end_of_day_prices(symbol, start_date_str, end_date_str, interval, cache_data=cache_data, cache_dir=cache_dir)
+            prices_dict[symbol] = prices_df
+        return prices_dict

@@ -8,6 +8,8 @@ from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
 from ..utils.df_utils import check_ohlc_dataframe
 from ..feature_engineering.feature_generation import add_future_returns
+from sklearn.feature_selection import mutual_info_regression
+from statsmodels.tsa.stattools import coint
 
 
 def calculate_mutual_information(df: pd.DataFrame, target_column: str) -> pd.DataFrame:
@@ -108,6 +110,7 @@ def calculate_pearson_correlation(df: pd.DataFrame, target_column: str) -> pd.Da
     return results_df
 
 
+@DeprecationWarning
 def get_top_features_by_percentile(mi_scores: pd.DataFrame = None, rf_scores: pd.DataFrame = None, pearson_scores: pd.DataFrame = None, percentile: float = 0.90) -> pd.DataFrame:
     """
     Combines the scores from mutual information, random forest, and Pearson correlation,
@@ -141,6 +144,7 @@ def get_top_features_by_percentile(mi_scores: pd.DataFrame = None, rf_scores: pd
 
     combined_top_features_df = combined_top_features_df.drop_duplicates().reset_index(drop=True)
     return combined_top_features_df
+
 
 def calculate_cluster_returns(df: pd.DataFrame, return_percentile: float, lookahead_period: int, num_clusters: int):
     """
@@ -206,3 +210,5 @@ def perform_clustering(df: pd.DataFrame, num_clusters: int) -> pd.DataFrame:
     tsne_df = pd.DataFrame(tsne_results, columns=['tsne1', 'tsne2'])
     tsne_df['cluster'] = filtered_clusters
     return tsne_df, df
+
+

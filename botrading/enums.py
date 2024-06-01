@@ -1,6 +1,14 @@
 from enum import Enum
 
 
+class TimeInterval(Enum):
+    DAY = 'DAY'
+    HOUR = 'HOUR'
+    MINUTE = 'MINUTE'
+    SECOND = 'SECOND'
+    MILLIS = 'MILLIS'
+
+
 class MarketIndex(Enum):
     """
     List of common market indexes like NASDAQ 100, Dow Jones or S&P 500
@@ -171,9 +179,9 @@ class Theme(Enum):
 
 
 class StatsMethod(Enum):
-    PEARSON = 'PEARSON'
+    PEARSON_CORRELATION = 'PEARSON_CORRELATION'
     MUTUAL_INFORMATION = 'MUTUAL_INFORMATION'
-    RANDOM_FOREST = 'RANDOM_FOREST'
+    RANDOM_FOREST_INFORMATION = 'RANDOM_FOREST_INFORMATION'
     UNKNOWN = 'UNKNOWN'
 
 

@@ -13,3 +13,6 @@ yfinance>=0.2.38
 PyWavelet>=0.0.1b0
 pandas_ta>=0.3.14b0
 scikit-learn>=1.4.2
+statsmodels>=0.14.2
+TA-Lib>=0.4.19
+mplfinance>=0.12.10b0
