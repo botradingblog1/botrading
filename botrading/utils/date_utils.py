@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from ..enums import TimeInterval
+from botrading.base.enums import TimeInterval
 
 
 def create_date_range(time_interval: TimeInterval, num_past_periods: int, date_format: str, end_date: datetime = None) -> tuple:

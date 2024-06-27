@@ -3,7 +3,7 @@ from datetime import datetime
 import pytz
 import threading
 import time
-from ..enums import TimeZone
+from botrading.base.enums import TimeZone
 
 
 class TimeProvider:

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import pandas as pd
 from botrading.data_loaders.fred_economic_data_loader import FredEconomicDataLoader
-from botrading.enums import EconomicIndicators
+from botrading.base.enums import EconomicIndicators
 
 
 class TestFredEconomicDataLoader(unittest.TestCase):

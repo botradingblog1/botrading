@@ -15,7 +15,6 @@ setup(
         'lxml>=5.2.2',
         'numpy>=1.26.4',
         'pandas>=2.2.2',
-        'pandas_market_calendars>=4.4.0',
         'requests>=2.31.0',
         'pytz>=2024.1',
         'matplotlib>=3.7.5,<3.8.0',

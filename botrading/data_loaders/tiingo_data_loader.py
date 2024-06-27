@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime
-from ..enums import TiingoDailyInterval, TiingoIntradayInterval, DataType
+from botrading.base.enums import TiingoDailyInterval, TiingoIntradayInterval, DataType
 from typing import List
 
 

@@ -39,7 +39,7 @@ class Indicator:
         }
 
         params_str = "_".join([f"{abbreviations.get(k, k)}{v}" for k, v in self.params.items()])
-        return f"{self.name}_{params_str}" if params_str else self.name
+        return f"{self.name}_{params_str}" if params_str else str(self.name)
 
     def calculate(self, data):
         """

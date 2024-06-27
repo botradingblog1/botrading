@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pandas_ta as ta
 import talib
-from ..enums import *
-from ..strategy_builder.indicator import Indicator
+from botrading.base.enums import *
+from botrading.base.indicator import Indicator
 from ..utils.df_utils import check_ohlc_dataframe
 from sklearn.cluster import AgglomerativeClustering
 from typing import List
@@ -32,6 +32,15 @@ def MACD(fastperiod=12, slowperiod=26, signalperiod=9):
 
 def BBANDS(timeperiod=20, nbdevup=2, nbdevdn=2):
     return Indicator(name=IndicatorType.BBANDS, indicator_type=IndicatorType.BBANDS, params={'timeperiod': timeperiod, 'nbdevup': nbdevup, 'nbdevdn': nbdevdn}, is_price_based=True)
+
+def BBANDS_LOWER(timeperiod=20, nbdevup=2, nbdevdn=2):
+    return Indicator(name=IndicatorType.BBANDS_LOWER, indicator_type=IndicatorType.BBANDS_LOWER, params={'timeperiod': timeperiod, 'nbdevup': nbdevup, 'nbdevdn': nbdevdn}, is_price_based=True)
+
+def BBANDS_MIDDLE(timeperiod=20, nbdevup=2, nbdevdn=2):
+    return Indicator(name=IndicatorType.BBANDS_MIDDLE, indicator_type=IndicatorType.BBANDS_MIDDLE, params={'timeperiod': timeperiod, 'nbdevup': nbdevup, 'nbdevdn': nbdevdn}, is_price_based=True)
+
+def BBANDS_UPPER(timeperiod=20, nbdevup=2, nbdevdn=2):
+    return Indicator(name=IndicatorType.BBANDS_UPPER, indicator_type=IndicatorType.BBANDS_UPPER, params={'timeperiod': timeperiod, 'nbdevup': nbdevup, 'nbdevdn': nbdevdn}, is_price_based=True)
 
 def ATR(timeperiod=14):
     return Indicator(name=IndicatorType.ATR, indicator_type=IndicatorType.ATR, params={'timeperiod': timeperiod}, is_price_based=True)
@@ -88,178 +97,160 @@ def _apply_indicator(df: pd.DataFrame, indicator: Indicator) -> pd.DataFrame:
     func_name = f"add_{indicator.name.lower()}"
     func = globals().get(func_name, None)
     if func:
-        return func(df, **indicator.params)
+        return func(df, indicator.column_name, **indicator.params)
     else:
         raise ValueError(f"Indicator {indicator.name} not supported.")
 
-
-def add_lag(df: pd.DataFrame, period: int) -> pd.DataFrame:
-    df[f"close_lag{period}"] = df['close'].shift(period)
+def add_lag(df: pd.DataFrame, column_name: str, period: int) -> pd.DataFrame:
+    df[column_name] = df['close'].shift(period)
     return df
 
-
-def add_delta(df: pd.DataFrame, period: int) -> pd.DataFrame:
-    df[f"close_delta{period}"] = df['close'].pct_change(periods=period)
+def add_delta(df: pd.DataFrame, column_name: str, period: int) -> pd.DataFrame:
+    df[column_name] = df['close'].pct_change(periods=period)
     return df
 
-
-def add_apo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"APO_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}"
+def add_apo(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.APO(df['close'], **params)
     return df
 
-def add_macd(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name_macd = f"MACD_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}_sigp{params.get('signalperiod', '')}"
+def add_macd(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     macd, macd_signal, macd_hist = talib.MACD(df['close'], **params)
-    df[column_name_macd] = macd
-    df[f'{column_name_macd}_signal'] = macd_signal
-    df[f'{column_name_macd}_hist'] = macd_hist
+    df[column_name] = macd
+    df[f'{column_name}_signal'] = macd_signal
+    df[f'{column_name}_hist'] = macd_hist
     return df
 
-def add_rsi(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"RSI_tp{params.get('timeperiod', '')}"
+def add_rsi(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.RSI(df['close'], **params)
     return df
 
-def add_bbands(df: pd.DataFrame, **params) -> pd.DataFrame:
-    timeperiod = params.get('timeperiod', '')
+def add_bbands(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     upper, middle, lower = talib.BBANDS(df['close'], **params)
-    df[f"BBAND_UPPER_tp{timeperiod}"] = upper
-    df[f"BBAND_MIDDLE_tp{timeperiod}"] = middle
-    df[f"BBAND_LOWER_tp{timeperiod}"] = lower
+    df[f"{column_name}_upper"] = upper
+    df[f"{column_name}_middle"] = middle
+    df[f"{column_name}_lower"] = lower
     return df
 
-def add_sma(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"SMA_tp{params.get('timeperiod', '')}"
+def add_bbands_lower(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    upper, middle, lower = talib.BBANDS(df['close'], **params)
+    df[column_name] = lower
+    return df
+
+def add_bbands_middle(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    upper, middle, lower = talib.BBANDS(df['close'], **params)
+    df[column_name] = middle
+    return df
+
+def add_bbands_upper(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    upper, middle, lower = talib.BBANDS(df['close'], **params)
+    df[column_name] = upper
+    return df
+
+def add_sma(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.SMA(df['close'], **params)
     return df
 
-def add_ema(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"EMA_tp{params.get('timeperiod', '')}"
+def add_ema(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.EMA(df['close'], **params)
     return df
 
-def add_cci(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"CCI_tp{params.get('timeperiod', '')}"
+def add_cci(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.CCI(df['high'], df['low'], df['close'], **params)
     return df
 
-def add_cmo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"CMO_tp{params.get('timeperiod', '')}"
+def add_cmo(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.CMO(df['close'], **params)
     return df
 
-def add_dm(df: pd.DataFrame, **params) -> pd.DataFrame:
-    timeperiod = params.get('timeperiod', '')
-    df[f'DI_POS_tp{timeperiod}'] = talib.PLUS_DM(df['high'], df['low'], **params)
-    df[f'DI_NEG_tp{timeperiod}'] = talib.MINUS_DM(df['high'], df['low'], **params)
+def add_dm(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    df[f'{column_name}_pos'] = talib.PLUS_DM(df['high'], df['low'], **params)
+    df[f'{column_name}_neg'] = talib.MINUS_DM(df['high'], df['low'], **params)
     return df
 
-def add_mom(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"MOM_tp{params.get('timeperiod', '')}"
+def add_mom(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.MOM(df['close'], **params)
     return df
 
-def add_ppo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"PPO_fp{params.get('fastperiod', '')}_sp{params.get('slowperiod', '')}"
+def add_ppo(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.PPO(df['close'], **params)
     return df
 
-def add_roc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"ROC_tp{params.get('timeperiod', '')}"
+def add_roc(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.ROC(df['close'], **params)
     return df
 
-def add_trix(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"TRIX_tp{params.get('timeperiod', '')}"
+def add_trix(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.TRIX(df['close'], **params)
     return df
 
-def add_uo(df: pd.DataFrame, **params) -> pd.DataFrame:
-    timeperiod1 = params.get('timeperiod1', '')
-    timeperiod2 = params.get('timeperiod2', '')
-    timeperiod3 = params.get('timeperiod3', '')
-    column_name = f"UO_tp1{timeperiod1}_tp2{timeperiod2}_tp3{timeperiod3}"
+def add_uo(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.ULTOSC(df['high'], df['low'], df['close'], **params)
     return df
 
-def add_williamsr(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"WILLIAMSR_tp{params.get('timeperiod', '')}"
+def add_williamsr(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.WILLR(df['high'], df['low'], df['close'], **params)
     return df
 
-def add_fisher_transform(df: pd.DataFrame, **params) -> pd.DataFrame:
+def add_fisher_transform(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     length = params.get('length', 9)
-    column_name = f"FISHER_TRANSFORM_len{length}"
     temp_df = ta.fisher(high=df['high'], low=df['low'], **params)
     df[column_name] = temp_df[f'FISHERT_{length}_1']
     df[f'{column_name}_signal'] = temp_df[f'FISHERTs_{length}_1']
     return df
 
-def add_adx(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"ADX_tp{params.get('timeperiod', '')}"
+def add_adx(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.ADX(df['high'], df['low'], df['close'], **params)
     return df
 
-def add_aroon(df: pd.DataFrame, **params) -> pd.DataFrame:
-    timeperiod = params.get('timeperiod', '')
-    df[f'AROON_down_tp{timeperiod}'], df[f'AROON_up_tp{timeperiod}'] = talib.AROON(df['high'], df['low'], **params)
+def add_aroon(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    df[f'{column_name}_down'], df[f'{column_name}_up'] = talib.AROON(df['high'], df['low'], **params)
     return df
 
-def add_psar(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['PSAR'] = talib.SAR(df['high'], df['low'], **params)
+def add_psar(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    df[column_name] = talib.SAR(df['high'], df['low'], **params)
     return df
 
-def add_low_bband(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"LOW_BBAND_tp{params.get('timeperiod', '')}"
+def add_low_bband(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name], _, _ = talib.BBANDS(df['close'], **params)
     return df
 
-def add_high_bband(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"HIGH_BBAND_tp{params.get('timeperiod', '')}"
+def add_high_bband(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     _, _, df[column_name] = talib.BBANDS(df['close'], **params)
     return df
 
-def add_low_donchian(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"LOW_DONCHIAN_tp{params.get('timeperiod', '')}"
+def add_low_donchian(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = ta.donchian(df['high'], df['low'], lower=True, **params)
     return df
 
-def add_high_donchian(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"HIGH_DONCHIAN_tp{params.get('timeperiod', '')}"
+def add_high_donchian(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = ta.donchian(df['high'], df['low'], upper=True, **params)
     return df
 
-def add_low_kc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"LOW_KC_tp{params.get('timeperiod', '')}"
+def add_low_kc(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = ta.kc(df['high'], df['low'], df['close'], lower=True, **params)
     return df
 
-def add_high_kc(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"HIGH_KC_tp{params.get('timeperiod', '')}"
+def add_high_kc(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = ta.kc(df['high'], df['low'], df['close'], upper=True, **params)
     return df
 
-def add_ad(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['AD'] = ta.ad(df['high'], df['low'], df['close'], df['volume'])
+def add_ad(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    df[column_name] = ta.ad(df['high'], df['low'], df['close'], df['volume'])
     return df
 
-def add_obv(df: pd.DataFrame, **params) -> pd.DataFrame:
-    df['OBV'] = talib.OBV(df['close'], df['volume'])
+def add_obv(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
+    df[column_name] = talib.OBV(df['close'], df['volume'])
     return df
 
-def add_cmf(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"CMF_tp{params.get('timeperiod', '')}"
+def add_cmf(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = ta.cmf(df['high'], df['low'], df['close'], df['volume'], **params)
     return df
 
-def add_mfi(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"MFI_tp{params.get('timeperiod', '')}"
+def add_mfi(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.MFI(df['high'], df['low'], df['close'], df['volume'], **params)
     return df
 
-def add_atr(df: pd.DataFrame, **params) -> pd.DataFrame:
-    column_name = f"ATR_tp{params.get('timeperiod', '')}"
+def add_atr(df: pd.DataFrame, column_name: str, **params) -> pd.DataFrame:
     df[column_name] = talib.ATR(df['high'], df['low'], df['close'], **params)
     return df
 
@@ -413,10 +404,14 @@ def get_common_indicators() -> list:
         RSI(timeperiod=8),
         RSI(timeperiod=14),
         MACD(fastperiod=12, slowperiod=26, signalperiod=9),
-        BBANDS(timeperiod=3, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=5, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=8, nbdevup=2, nbdevdn=2),
-        BBANDS(timeperiod=20, nbdevup=2, nbdevdn=2),
+        BBANDS_LOWER(timeperiod=3, nbdevup=2, nbdevdn=2),
+        BBANDS_UPPER(timeperiod=3, nbdevup=2, nbdevdn=2),
+        BBANDS_LOWER(timeperiod=5, nbdevup=2, nbdevdn=2),
+        BBANDS_UPPER(timeperiod=5, nbdevup=2, nbdevdn=2),
+        BBANDS_LOWER(timeperiod=8, nbdevup=2, nbdevdn=2),
+        BBANDS_UPPER(timeperiod=8, nbdevup=2, nbdevdn=2),
+        BBANDS_LOWER(timeperiod=20, nbdevup=2, nbdevdn=2),
+        BBANDS_UPPER(timeperiod=20, nbdevup=2, nbdevdn=2),
         ATR(timeperiod=3),
         ATR(timeperiod=5),
         ATR(timeperiod=8),

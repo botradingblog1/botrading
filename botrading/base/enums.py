@@ -1,6 +1,49 @@
 from enum import Enum
 
 
+class OrderStatus(Enum):
+    NEW = "new"
+    ACCEPTED = "accepted"
+    PARTIALLY_FILLED = "partially_filled"
+    FILLED = "filled"
+    DONE_FOR_DAY = "done_for_day"
+    CANCELED = "canceled"
+    EXPIRED = "expired"
+    REPLACED = "replaced"
+    PENDING_CANCEL = "pending_cancel"
+    PENDING_REPLACE = "pending_replace"
+    PENDING_REVIEW = "pending_review"
+    PENDING_NEW = "pending_new"
+    ACCEPTED_FOR_BIDDING = "accepted_for_bidding"
+    STOPPED = "stopped"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+    CALCULATED = "calculated"
+    HELD = "held"
+
+
+class OrderType(Enum):
+    MARKET = "market"
+    LIMIT = "limit"
+    STOP = "stop"
+    STOP_LIMIT = "stop_limit"
+    TRAILING_STOP = "trailing_stop"
+
+
+class OrderSide(Enum):
+    BUY = "buy"
+    SELL = "sell"
+
+
+class TimeInForce(Enum):
+    GTC = "gtc"
+    DAY = "day"
+    OPG = "opg"
+    CLS = "cls"
+    IOC = "ioc"
+    FOK = "fok"
+
+
 class TimeInterval(Enum):
     DAY = 'DAY'
     HOUR = 'HOUR'

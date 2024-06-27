@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from botrading.enums import MarketIndex
+from botrading.base.enums import MarketIndex
 
 
 class MarketSymbolLoader:

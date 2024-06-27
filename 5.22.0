@@ -1,0 +1,9 @@
+Collecting plotly
+  Using cached plotly-5.22.0-py3-none-any.whl.metadata (7.1 kB)
+Collecting tenacity>=6.2.0 (from plotly)
+  Using cached tenacity-8.3.0-py3-none-any.whl.metadata (1.2 kB)
+Requirement already satisfied: packaging in c:\users\dutch\anaconda3\envs\botrading\lib\site-packages (from plotly) (24.0)
+Using cached plotly-5.22.0-py3-none-any.whl (16.4 MB)
+Using cached tenacity-8.3.0-py3-none-any.whl (25 kB)
+Installing collected packages: tenacity, plotly
+Successfully installed plotly-5.22.0 tenacity-8.3.0
