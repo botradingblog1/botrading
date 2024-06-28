@@ -35,3 +35,7 @@ class Broker(ABC):
     @abstractmethod
     def get_order_by_id(self, order_id: str):
         pass
+
+    @abstractmethod
+    def cancel_order(self, order_id: str, wait: Optional[bool] = False, timeout: Optional[int] = 30):
+        pass

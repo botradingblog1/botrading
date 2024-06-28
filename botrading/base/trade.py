@@ -36,9 +36,35 @@ class Trade:
     def from_dict(cls, data: dict):
         trade = cls()
         trade.trade_id = data.get('trade_id')
-        if data.get('open_order'):
-            trade.open_order = Order.from_dict(data['open_order'])
-        if data.get('close_order'):
-            trade.close_order = Order.from_dict(data['close_order'])
-        trade.is_closed = data.get('is_closed', False)
+        if data.get('open_order_id'):
+            order_dict = {
+                'id': str(data.get('open_order_id')),
+                'created_at': data.get('open_created_at'),
+                'side': data.get('open_side'),
+                'order_type': data.get('open_order_type'),
+                'symbol': data.get('open_symbol'),
+                'quantity': data.get('open_quantity'),
+                'status': data.get('open_status'),
+                'filled_quantity': data.get('open_filled_quantity'),
+                'filled_avg_price': data.get('open_filled_avg_price'),
+                'extended_hours': data.get('open_extended_hours')
+            }
+
+            trade.open_order = Order.from_dict(order_dict)
+        if data.get('close_order_id'):
+            order_dict = {
+                'id': str(data.get('close_order_id')),
+                'created_at': data.get('close_created_at'),
+                'side': data.get('close_side'),
+                'order_type': data.get('close_order_type'),
+                'symbol': data.get('close_symbol'),
+                'quantity': data.get('close_quantity'),
+                'status': data.get('close_status'),
+                'filled_quantity': data.get('close_filled_quantity'),
+                'filled_avg_price': data.get('close_filled_avg_price'),
+                'extended_hours': data.get('close_extended_hours')
+            }
+
+            trade.close_order = Order.from_dict(order_dict)
+        trade.is_closed = data['is_closed'] if 'is_closed' in data and data['is_closed'] is not None else False,
         return trade
