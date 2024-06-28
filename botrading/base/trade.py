@@ -36,13 +36,13 @@ class Trade:
     def from_dict(cls, data: dict):
         trade = cls()
         trade.trade_id = data.get('trade_id')
-        if data.get('open_order_id'):
+        if str(data.get('open_order_id')) and str(data.get('open_order_id')) != 'nan':
             order_dict = {
                 'id': str(data.get('open_order_id')),
                 'created_at': data.get('open_created_at'),
                 'side': data.get('open_side'),
                 'order_type': data.get('open_order_type'),
-                'symbol': data.get('open_symbol'),
+                'symbol': str(data.get('open_symbol')),
                 'quantity': data.get('open_quantity'),
                 'status': data.get('open_status'),
                 'filled_quantity': data.get('open_filled_quantity'),
@@ -51,13 +51,14 @@ class Trade:
             }
 
             trade.open_order = Order.from_dict(order_dict)
-        if data.get('close_order_id'):
+
+        if str(data.get('close_order_id')) and str(data.get('close_order_id')) != 'nan':
             order_dict = {
                 'id': str(data.get('close_order_id')),
                 'created_at': data.get('close_created_at'),
                 'side': data.get('close_side'),
                 'order_type': data.get('close_order_type'),
-                'symbol': data.get('close_symbol'),
+                'symbol': str(data.get('close_symbol')),
                 'quantity': data.get('close_quantity'),
                 'status': data.get('close_status'),
                 'filled_quantity': data.get('close_filled_quantity'),
@@ -66,5 +67,5 @@ class Trade:
             }
 
             trade.close_order = Order.from_dict(order_dict)
-        trade.is_closed = data['is_closed'] if 'is_closed' in data and data['is_closed'] is not None else False,
+        trade.is_closed = bool(data.get('is_closed', False))
         return trade
