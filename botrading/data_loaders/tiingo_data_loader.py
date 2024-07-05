@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from botrading.base.enums import TiingoDailyInterval, TiingoIntradayInterval, DataType
 from typing import List
+from botrading.utils.string_utils import clean_string, join_items
 
 
 class TiingoDataLoader:
@@ -176,3 +177,93 @@ class TiingoDataLoader:
             prices_df = self.fetch_end_of_day_prices(symbol, start_date_str, end_date_str, interval, cache_data=cache_data, cache_dir=cache_dir)
             prices_dict[symbol] = prices_df
         return prices_dict
+
+    def fetch_news_article_by_symbol(self, symbol: str,
+                                     start_date_str: str,
+                                     end_date_str: str,
+                                     news_article_limit=50,
+                                     cache_data: bool = False,
+                                     cache_dir='cache'):
+        path = os.path.join(cache_dir, f"{symbol}_{start_date_str}_{end_date_str}_news.csv")
+        if cache_data is True:
+            if os.path.exists(path):
+                news_df = pd.read_csv(path)
+                if 'title' in news_df.columns:
+                    news_df['title'] = str(news_df['title'])
+                if 'description' in news_df.columns:
+                    news_df['description'] = str(news_df['description'])
+                return news_df
+
+        base_url = 'https://api.tiingo.com/tiingo/news'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + self.api_key
+        }
+
+        params = {
+            'startDate': start_date_str,
+            'endDate': end_date_str,
+            'limit': news_article_limit,
+            'tickers': symbol
+        }
+
+        #(f"Fetching Tiingo news stories...")
+        try:
+            response = requests.get(base_url, headers=headers, params=params, timeout=30)
+            if response.status_code == 200:
+                news_json = response.json()
+
+                # Convert to DataFrame
+                news_df = pd.DataFrame(news_json)
+                if not news_df.empty:
+                    news_df['title'] = news_df['title'].apply(clean_string)
+                    news_df['description'] = news_df['description'].apply(clean_string)
+                    news_df.rename(columns={'tickers': 'symbols'}, inplace=True)
+                    news_df['symbols'] = news_df['symbols'].apply(join_items)
+
+                    # Drop duplicate articles
+                    news_df = news_df.drop_duplicates(subset='title')
+                    news_df['id'] = news_df['id'].astype(str)
+
+                    # Cache news for review
+                    if cache_data is True:
+                        os.makedirs(cache_dir, exist_ok=True)
+                        if len(news_df) > 0:
+                            news_df.to_csv(path)
+
+                # Convert dates to pd dates
+                news_df['publishedDate'] = pd.to_datetime(news_df['publishedDate'], errors='coerce')
+
+                return news_df
+            else:
+                print(f"Error: Tiingo News API returned error HTTP status code: {response.status_code}")
+                return None
+        except Exception as ex:
+            print(f"Error: Fetch news stories API failed with exception: {str(ex)}")
+            return None
+
+    def fetch_multiple_news_articles(self, symbol_list: list[str],
+                                     start_date_str,
+                                     end_date_str,
+                                     limit=50,
+                                     cache_data: bool=False,
+                                     cache_dir: str = 'cache'):
+        print(f"Fetching Tiingo news data....")
+        i = 1
+        news_dict = {}
+        for symbol in symbol_list:
+            #logd(f"Fetching growth for {symbol}... ({i}/{len(symbol_list)})")
+
+            # Fetch tiingo news
+            news_df = self.fetch_news_article_by_symbol(symbol,
+                                                        start_date_str,
+                                                        end_date_str,
+                                                        limit,
+                                                        cache_data,
+                                                        cache_dir)
+            if news_df is None or len(news_df) == 0:
+                continue
+
+            news_dict[symbol] = news_df
+
+        return news_dict

@@ -7,7 +7,7 @@ from botrading.base.enums import OrderSide, OrderType, OrderStatus
 class Order:
     def __init__(self, id: UUID, client_order_id: str, created_at: datetime, side: OrderSide, order_type: OrderType,
                  symbol: str, quantity: float, status: OrderStatus, filled_quantity: float = 0.0, filled_avg_price: Optional[float] = None,
-                 extended_hours: bool = False):
+                 stop_price: Optional[float] = None, limit_price: Optional[float] = None, extended_hours: bool = False):
         self.id = id
         self.client_order_id = client_order_id
         self.created_at = created_at
@@ -18,6 +18,8 @@ class Order:
         self.status = status
         self.filled_quantity = filled_quantity
         self.filled_avg_price = filled_avg_price
+        self.stop_price = stop_price
+        self.limit_price = limit_price
         self.extended_hours = extended_hours
 
     def to_dict(self):
@@ -32,6 +34,8 @@ class Order:
             'status': self.status.value if self.status else None,
             'filled_quantity': self.filled_quantity if self.filled_quantity else 0.0,
             'filled_avg_price': self.filled_avg_price if self.filled_avg_price else 0.0,
+            'stop_price': self.stop_price if self.stop_price else 0.0,
+            'limit_price': self.limit_price if self.limit_price else 0.0,
             'extended_hours': self.extended_hours if self.extended_hours else False
         }
 
@@ -48,6 +52,10 @@ class Order:
             status=OrderStatus(data['status'].lower()) if 'status' in data and data['status'] is not None else None,
             filled_quantity=data['filled_quantity'] if 'filled_quantity' in data and data['filled_quantity'] is not None else 0.0,
             filled_avg_price=data['filled_avg_price'] if 'filled_avg_price' in data and data['filled_avg_price'] is not None else 0.0,
+            stop_price=data['stop_price'] if 'stop_price' in data and data[
+                'stop_price'] is not None else 0.0,
+            limit_price=data['limit_price'] if 'limit_price' in data and data[
+                'limit_price'] is not None else 0.0,
             extended_hours=data['extended_hours'] if 'extended_hours' in data and data['extended_hours'] is not None else 0.0,
         )
 

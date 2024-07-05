@@ -47,6 +47,8 @@ class Trade:
                 'status': data.get('open_status'),
                 'filled_quantity': data.get('open_filled_quantity'),
                 'filled_avg_price': data.get('open_filled_avg_price'),
+                'stop_price': data.get('open_stop_price'),
+                'limit_price': data.get('open_limit_price'),
                 'extended_hours': data.get('open_extended_hours')
             }
 
@@ -63,6 +65,8 @@ class Trade:
                 'status': data.get('close_status'),
                 'filled_quantity': data.get('close_filled_quantity'),
                 'filled_avg_price': data.get('close_filled_avg_price'),
+                'stop_price': data.get('close_stop_price'),
+                'limit_price': data.get('close_limit_price'),
                 'extended_hours': data.get('close_extended_hours')
             }
 
