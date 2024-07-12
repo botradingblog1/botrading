@@ -42,9 +42,9 @@ def plot_candlestick_chart(df,
 
     # Setup market colors
     mc = mpf.make_marketcolors(
-        up=color_palette['dark_candle'],
-        down=color_palette['light_candle'],
-        edge={'up': color_palette['dark_candle'], 'down': color_palette['light_candle']},
+        up=color_palette['light_candle'],
+        down=color_palette['dark_candle'],
+        edge={'up': color_palette['light_candle'], 'down': color_palette['dark_candle']},
         volume=color_palette['volume_color']
     )
 
@@ -57,7 +57,8 @@ def plot_candlestick_chart(df,
         rc={'axes.edgecolor': color_palette['border_color'],
             'axes.labelcolor': color_palette['text_color'],
             'xtick.color': color_palette['text_color'],
-            'ytick.color': color_palette['text_color']}
+            'ytick.color': color_palette['text_color'],
+            'lines.linewidth': 0.75}
     )
 
     # Additional plots

@@ -207,7 +207,6 @@ class TiingoDataLoader:
             'tickers': symbol
         }
 
-        #(f"Fetching Tiingo news stories...")
         try:
             response = requests.get(base_url, headers=headers, params=params, timeout=30)
             if response.status_code == 200:
@@ -232,7 +231,8 @@ class TiingoDataLoader:
                             news_df.to_csv(path)
 
                 # Convert dates to pd dates
-                news_df['publishedDate'] = pd.to_datetime(news_df['publishedDate'], errors='coerce')
+                if len(news_df) > 0 and 'publishedDate' in news_df.columns:
+                    news_df['publishedDate'] = pd.to_datetime(news_df['publishedDate'], errors='coerce')
 
                 return news_df
             else:

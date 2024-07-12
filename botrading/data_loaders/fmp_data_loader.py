@@ -531,3 +531,68 @@ class FmpDataLoader:
             print(ex)
             return None
 
+    def fetch_institutional_ownership_changes(self, symbol, include_current_quarter=True):
+        try:
+            url = f"https://financialmodelingprep.com/api/v4/institutional-ownership/symbol-ownership?symbol={symbol}&includeCurrentQuarter={str(include_current_quarter)}&apikey={self._api_key}"
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    inst_own_df = pd.DataFrame(data)
+
+                    # Sort by date
+                    inst_own_df['date'] = pd.to_datetime(inst_own_df['date'], errors='coerce')
+                    inst_own_df.sort_values(by=['date'], ascending=False, inplace=True)
+
+                    # Calculate total invested percent change
+                    if len(inst_own_df) > 0:
+                        latest_total_invested = inst_own_df['totalInvested'].iloc[0]
+                        previous_total_invested = inst_own_df['lastTotalInvested'].iloc[0]
+                        if previous_total_invested > 0:
+                            total_invested_percent_change = round(
+                                ((latest_total_invested - previous_total_invested) / previous_total_invested), 2)
+                        else:
+                            total_invested_percent_change = 0
+
+                        # Calculate investors holding change
+                        latest_investors_holding = inst_own_df['investorsHolding'].iloc[0]
+                        previous_investors_holding = inst_own_df['lastInvestorsHolding'].iloc[0]
+                        if previous_investors_holding > 0:
+                            investors_holding_change = round(
+                                ((latest_investors_holding - previous_investors_holding) / previous_investors_holding), 2)
+                        else:
+                            investors_holding_change = 0
+                    else:
+                        total_invested_percent_change = 0
+                        investors_holding_change = 0
+                    inst_own_df['totalInvestedChange'] = total_invested_percent_change
+                    inst_own_df['investorsHoldingChange'] = investors_holding_change
+
+                    return inst_own_df
+                return None
+            else:
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_multiple_institutional_ownership_changes(self, symbol_list: list, include_current_quarter: bool = True) -> dict:
+        """
+        Fetches historical institutional ownership for multiple symbols from FMP API for a specific date.
+
+        Parameters:
+            symbol_list (list): List of stock symbols.
+            include_current_quarter (str): include current quarter
+
+        Returns:
+            dict: A dictionary with symbols as keys and DataFrames with institutional ownership data as values.
+        """
+        results_dict = {}
+        for symbol in symbol_list:
+            df = self.fetch_institutional_ownership_changes(symbol, include_current_quarter)
+            if df is not None:
+                results_dict[symbol] = df
+            else:
+                print(f"Failed to fetch data for {symbol}")
+        return results_dict
