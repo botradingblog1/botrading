@@ -3,6 +3,9 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from statsmodels.nonparametric.kernel_regression import KernelReg
 
+# Disable SettingWithCopyWarning globally
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 def normalize_dataframe_columns(df: pd.DataFrame, column_list: list = ['close'], scaler_type: str = 'minmax', keep_original: bool = True) -> pd.DataFrame:
     """
@@ -105,7 +108,6 @@ def add_kernel_reg_smoothed_line(df, column_list=['close'], output_cols=None, ba
 
     return df
 
-
 def compute_slope(df: pd.DataFrame, target_col: str, slope_col: str, window_size: int) -> pd.DataFrame:
     """
     Computes the slope of a time series for the specified target column and adds it as a new column.
@@ -129,7 +131,10 @@ def compute_slope(df: pd.DataFrame, target_col: str, slope_col: str, window_size
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' does not exist in the DataFrame.")
 
+    # Make a copy of the DataFrame to avoid SettingWithCopyWarning
+    df = df.copy()
+
     # Compute the rolling slope and add it as a new column
-    df[slope_col] = df[target_col].rolling(window=window_size).apply(compute_slope_internal, raw=True)
+    df.loc[:, slope_col] = df[target_col].rolling(window=window_size).apply(compute_slope_internal, raw=True)
 
     return df

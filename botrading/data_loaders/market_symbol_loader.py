@@ -71,22 +71,7 @@ class MarketSymbolLoader:
             DataFrame: dataframe with list of symbols and additional info.
         """
         wiki_url = 'https://en.wikipedia.org/wiki/Russell_1000_Index'
-        return self._fetch_symbols(wiki_url, 2, cache_file, cache_dir, file_name, 'Ticker')
-
-    def fetch_russell2000_symbols(self, cache_file=False, cache_dir="cache", file_name="russell2000_symbols.csv"):
-        """
-        Fetches the list of Russell 2000 symbols.
-
-        Parameters:
-            cache_file (bool): Flag to indicate if the list should be cached
-            cache_dir (str): Cache directory
-            file_name (str): Cache file name
-
-        Returns:
-            DataFrame: dataframe with list of symbols and additional info.
-        """
-        wiki_url = 'https://en.wikipedia.org/wiki/Russell_2000_Index'
-        return self._fetch_symbols(wiki_url, 2, cache_file, cache_dir, file_name, 'Ticker')
+        return self._fetch_symbols(wiki_url, 2, cache_file, cache_dir, file_name, 'Symbol')
 
     def _fetch_symbols(self, url, table_index, cache_file, cache_dir, file_name, ticker_column):
         try:
@@ -131,7 +116,5 @@ class MarketSymbolLoader:
             return self.fetch_dji_symbols(cache_file, cache_dir)
         elif market_index == MarketIndex.RUSSELL_1000:
             return self.fetch_russell1000_symbols(cache_file, cache_dir)
-        elif market_index == MarketIndex.RUSSELL_2000:
-            return self.fetch_russell2000_symbols(cache_file, cache_dir)
         else:
             raise ValueError(f"Unsupported market index: {market_index}")

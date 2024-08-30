@@ -1,6 +1,18 @@
 from enum import Enum
 
 
+class MarketSentimentType(Enum):
+    BULLISH = "bullish"
+    BEARISH = "bearish"
+    RANGING = "ranging"
+
+
+class SupportResistanceType(Enum):
+    SUPPORT = "support"
+    RESISTANCE = "resistance"
+    UNKNOWN = "unknown"
+
+
 class OrderStatus(Enum):
     NEW = "new"
     ACCEPTED = "accepted"
@@ -341,3 +353,10 @@ class CandlestickPattern(Enum):
     CDLUNIQUE3RIVER = 'CDLUNIQUE3RIVER'
     CDLUPSIDEGAP2CROWS = 'CDLUPSIDEGAP2CROWS'
     CDLXSIDEGAP3METHODS = 'CDLXSIDEGAP3METHODS'
+
+
+#  Options Trading
+class OptionSide(Enum):
+    CALL = "call"
+    PUT = "put"
+    UNKNOWN = "unknown"

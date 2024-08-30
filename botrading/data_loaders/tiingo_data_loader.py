@@ -129,7 +129,9 @@ class TiingoDataLoader:
                 response = requests.get(fetch_url, headers=headers)
                 data = response.json()
 
-                prices_df = pd.DataFrame()
+                prices_df = pd.DataFrame(data)
+                prices_df.rename(columns={"adjClose": "adj_close"}, inplace=True)
+                """
                 for row in data:
                     row_df = pd.DataFrame({
                         'date': [row['date']],
@@ -141,7 +143,7 @@ class TiingoDataLoader:
                         'adj_close': [row.get('adjClose')]
                     })
                     prices_df = pd.concat([prices_df, row_df], axis=0, ignore_index=True)
-
+                """
 
                 if cache_data is True:
                     os.makedirs(cache_dir, exist_ok=True)

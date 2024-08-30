@@ -6,7 +6,28 @@ import matplotlib.ticker as mticker
 from ..themes.dark_theme import DarkTheme
 from ..themes.light_theme import LightTheme
 import mplfinance as mpf
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import os
+
+light_palette = {}
+light_palette["bg_color"] = "#ffffff"
+light_palette["plot_bg_color"] = "#ffffff"
+light_palette["grid_color"] = "#e6e6e6"
+light_palette["text_color"] = "#2e2e2e"
+light_palette["dark_candle"] = "#4d98c4"
+light_palette["light_candle"] = "#cccccc"
+light_palette["volume_color"] = "#f5f5f5"
+light_palette["border_color"] = "#2e2e2e"
+light_palette["color_1"] = "#5c285b"
+light_palette["color_2"] = "#802c62"
+light_palette["color_3"] = "#a33262"
+light_palette["color_4"] = "#c43d5c"
+light_palette["color_5"] = "#de4f51"
+light_palette["color_6"] = "#f26841"
+light_palette["color_7"] = "#fd862b"
+light_palette["color_8"] = "#ffa600"
+light_palette["color_9"] = "#3366d6"
 
 
 def plot_candlestick_chart(df,
@@ -165,3 +186,107 @@ def plot_line_chart(df,
     if path and file_name:
         os.makedirs(path, exist_ok=True)
         plt.savefig(os.path.join(path, file_name), bbox_inches='tight', dpi=dpi)
+
+
+def plot_candle_sentiment_chart(symbol, df, theme_class=LightTheme):
+    palette = theme_class.color_palette
+    # Create sub plots
+    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"{symbol} Chart"], \
+                        specs=[[{"secondary_y": True}]], \
+                        vertical_spacing=0.04, shared_xaxes=True)
+
+    # Plot close price
+    fig.add_trace(go.Candlestick(x=df.index,
+                                 open=df['open'],
+                                 close=df['close'],
+                                 low=df['low'],
+                                 high=df['high'],
+                                 increasing_line_color=palette['light_candle'], decreasing_line_color=palette['dark_candle'], name='Price'), row=1, col=1)
+
+    # Add sentiment score annotations
+    for i, (date, score) in enumerate(zip(df.index, df['sentiment_score'])):
+        fig.add_annotation(x=date, y=df['high'].iloc[i] + 1, text=f"{score}", showarrow=False,
+                           font=dict(size=9, color=palette["text_color"]))
+
+    fig.update_layout(
+        title={'text': '', 'x': 0.5},
+        font=dict(family="Verdana", size=12, color=palette["text_color"]),
+        autosize=True,
+        width=1280, height=720,
+        xaxis={"rangeslider": {"visible": False}},
+        plot_bgcolor=palette["plot_bg_color"],
+        paper_bgcolor=palette["bg_color"])
+    fig.update_yaxes(visible=False, secondary_y=True)
+
+    # Change grid color
+    fig.update_xaxes(showline=True, linewidth=1, linecolor=palette["grid_color"], gridcolor=palette["grid_color"])
+    fig.update_yaxes(showline=True, linewidth=1, linecolor=palette["grid_color"], gridcolor=palette["grid_color"])
+
+    # Create output file
+    file_name = f"{symbol}_candle_sentiment_chart.png"
+    fig.write_image(os.path.join(".", file_name), format="png")
+
+    return fig
+
+
+def plot_supply_demand_chart(symbol: str, df: pd.DataFrame, supply_zones: list, demand_zones: list, theme_class=LightTheme):
+    palette = theme_class.color_palette
+    fig = make_subplots(rows=1, cols=1, subplot_titles=[""],
+                        specs=[[{"secondary_y": True}]], vertical_spacing=0.04, shared_xaxes=True)
+
+    # Plot candlesticks
+    fig.add_trace(go.Candlestick(x=df.index, open=df['open'], high=df['high'], low=df['low'],
+                                 close=df['close'], increasing_line_color=palette['light_candle'],
+                                 decreasing_line_color=palette['dark_candle'], name='Price'), row=1, col=1)
+
+    # Plot supply zones
+    for zone in supply_zones:
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.proxima_level, y1=zone.distal_level,
+                      fillcolor="red", opacity=0.2, line=dict(color="red", width=1))
+        # Add the proxima and distal lines
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.proxima_level, y1=zone.proxima_level,
+                      fillcolor="red", opacity=0.8, line=dict(color="red", width=1))
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.distal_level, y1=zone.distal_level,
+                      fillcolor="red", opacity=0.8, line=dict(color="red", width=1))
+
+        # Add label for continuation zone
+        if zone.is_continuation_zone:
+            fig.add_trace(go.Scatter(x=[df.index[zone.start_index]], y=[zone.distal_level],
+                                     mode='text', text=['Continuation'],
+                                     textposition='bottom center', showlegend=False))
+
+    # Plot demand zones
+    for zone in demand_zones:
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.distal_level, y1=zone.proxima_level,
+                      fillcolor="green", opacity=0.2, line=dict(color="green", width=1))
+        # Add the proxima and distal lines
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.distal_level, y1=zone.distal_level,
+                      fillcolor="green", opacity=0.8, line=dict(color="green", width=1))
+        fig.add_shape(type="rect", x0=df.index[zone.start_index], x1=df.index[-1],
+                      y0=zone.proxima_level, y1=zone.proxima_level,
+                      fillcolor="green", opacity=0.8, line=dict(color="green", width=1))
+        # Add label for continuation zone
+        if zone.is_continuation_zone:
+            fig.add_trace(go.Scatter(x=[df.index[zone.start_index]], y=[zone.distal_level],
+                                     mode='text', text=['Continuation'],
+                                     textposition='bottom center', showlegend=False))
+
+    fig.update_layout(title={'text': f'{symbol} Supply/Demand Zones', 'x': 0.5},
+                      font=dict(family="Verdana", size=12),
+                      autosize=True, width=1280, height=720,
+                      xaxis={"rangeslider": {"visible": False}}, plot_bgcolor="white",
+                      paper_bgcolor="white")
+
+    fig.update_xaxes(showline=True, linewidth=1, linecolor='black', gridcolor='lightgrey')
+    fig.update_yaxes(showline=True, linewidth=1, linecolor='black', gridcolor='lightgrey')
+
+    os.makedirs("plots", exist_ok=True)
+    file_name = f"{symbol}_supply_demand_pattern_chart.png"
+    fig.write_image(os.path.join("plots", file_name), format="png")
+
+    return fig

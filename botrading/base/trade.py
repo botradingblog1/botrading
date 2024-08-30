@@ -9,6 +9,7 @@ class Trade:
         self.open_order: Optional[Order] = None
         self.close_order: Optional[Order] = None
         self.is_closed = False
+        self.is_breakeven_stop_set = False
 
         if order:
             if isinstance(order, dict):
@@ -29,7 +30,8 @@ class Trade:
             'trade_id': self.trade_id,
             'open_order': self.open_order.to_dict() if self.open_order else None,
             'close_order': self.close_order.to_dict() if self.close_order else None,
-            'is_closed': self.is_closed
+            'is_closed': self.is_closed,
+            'is_breakeven_stop_set': self.is_breakeven_stop_set
         }
 
     @classmethod
@@ -63,11 +65,12 @@ class Trade:
                 'symbol': str(data.get('close_symbol')),
                 'quantity': data.get('close_quantity'),
                 'status': data.get('close_status'),
+                'price_submitted': data.get('close_price'),
                 'filled_quantity': data.get('close_filled_quantity'),
                 'filled_avg_price': data.get('close_filled_avg_price'),
                 'stop_price': data.get('close_stop_price'),
                 'limit_price': data.get('close_limit_price'),
-                'extended_hours': data.get('close_extended_hours')
+                'extended_hours': data.get('close_extended_hours'),
             }
 
             trade.close_order = Order.from_dict(order_dict)

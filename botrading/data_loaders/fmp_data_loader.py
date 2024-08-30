@@ -2,6 +2,7 @@ import os
 import requests
 import pandas as pd
 from ..utils.df_utils import standardize_ohlcv_dataframe
+from typing import Union
 
 
 class FmpDataLoader:
@@ -596,3 +597,251 @@ class FmpDataLoader:
             else:
                 print(f"Failed to fetch data for {symbol}")
         return results_dict
+
+    def fetch_earnings_calendar(self, start_date_str, end_date_str):
+        url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={start_date_str}&to={end_date_str}&apikey={self._api_key}"
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+            # Create DataFrame from the data
+            df = pd.DataFrame(data)
+            return df
+
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred while fetching the earnings calendar: {e}")
+            return pd.DataFrame()  # Return an empty DataFrame in case of error
+
+    def fetch_insider_trades(self, symbol: str, from_date_str: str, to_date_str: str, cache_data: bool = False,
+                             cache_dir: str = "cache") -> pd.DataFrame:
+        """
+        Fetches insider trades from the FMP API.
+
+        Parameters:
+            symbol (str): Stock symbol.
+            from_date_str (str): Start date in 'YYYY-MM-DD' format.
+            to_date_str (str): End date in 'YYYY-MM-DD' format.
+            cache_data (bool): Flag to specify if data should be cached.
+            cache_dir (str): Directory to cache the data.
+
+        Returns:
+            pd.DataFrame: DataFrame with insider trades.
+        """
+
+        file_name = f"{symbol}-insider-trades-{from_date_str}-to-{to_date_str}.csv"
+        path = os.path.join(cache_dir, file_name)
+        if cache_data is True:
+            if os.path.exists(path) is True:
+                trades_df = pd.read_csv(path)
+                trades_df['transactionDate'] = pd.to_datetime(trades_df['transactionDate'])
+                trades_df.set_index('transactionDate', inplace=True)
+                trades_df = trades_df[(trades_df.index >= from_date_str) & (trades_df.index <= to_date_str)]
+                return trades_df
+
+        try:
+            url = f"https://financialmodelingprep.com/api/v4/insider-trading?symbol={symbol}&apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    trades_df = pd.DataFrame(data)
+                    trades_df['transactionDate'] = pd.to_datetime(trades_df['transactionDate'])
+                    trades_df.set_index('transactionDate', inplace=True)
+                    trades_df.sort_values(by=['transactionDate'], ascending=True, inplace=True)
+
+                    # Filter by date range
+                    trades_df = trades_df[(trades_df.index >= from_date_str) & (trades_df.index <= to_date_str)]
+
+                    if cache_data is True:
+                        os.makedirs(cache_dir, exist_ok=True)
+                        trades_df.to_csv(path)
+                    return trades_df
+                else:
+                    return None
+            else:
+                print(f"Failed to fetch insider trades. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_multiple_insider_trades_by_date(self, symbol_list: list, start_date_str: str, end_date_str: str, cache_data: bool = False, cache_dir: str = "cache") -> dict:
+        """
+        Fetches daily prices by date for multiple insider trades from the FMP API.
+
+        Parameters:
+            symbol_list (list): List of stock symbols.
+            start_date_str (str): Start date in 'YYYY-MM-DD' format.
+            end_date_str (str): End date in 'YYYY-MM-DD' format.
+            cache_data (bool): Flag to specify if data should be cached
+            cache_dir (str): Directory to cache the data.
+
+        Returns:
+            dict: A dictionary with symbols as keys and DataFrames with daily prices as values.
+        """
+        results = {}
+        for symbol in symbol_list:
+            print(f"Now fetching insider trades data for {symbol}...")
+            df = self.fetch_insider_trades(symbol, start_date_str, end_date_str, cache_data, cache_dir)
+            if df is not None:
+                results[symbol] = df
+            else:
+                print(f"Failed to fetch insider trades data for {symbol}")
+        return results
+
+    def fetch_analyst_earnings_estimates(self, symbol: str, period: str, limit: int=100) -> Union[pd.DataFrame, None]:
+        """
+        Fetches analyst estimates data from the FMP API.
+
+        Parameters:
+            symbol (str): Stock symbol.
+            period (Period): Period for the estimates, either 'quarter' or 'annual'
+            limit (int): Number of records to fetch.
+            api_key (str): Your FMP API key.
+
+        Returns:
+            pd.DataFrame: DataFrame with analyst estimates data or None if the request fails.
+        """
+        try:
+            url = f"https://financialmodelingprep.com/api/v3/analyst-estimates/{symbol}?period={period}&limit={limit}&apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    estimates_df = pd.DataFrame(data)
+                    return estimates_df
+                else:
+                    print(f"No data found for {symbol}.")
+                    return None
+            else:
+                print(f"Failed to fetch analyst estimates. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_multiple_analyst_earnings_estimates(self, symbol_list: list, period: str, limit=100) -> dict:
+        """
+        Fetches analyst earnings estimates for multiple symbols from the FMP API.
+
+        Parameters:
+            symbol_list (list): List of stock symbols
+            period (Period): Period for the estimates, either 'quarter' or 'annual'
+            cache_data (bool): Flag to specify if data should be cached
+            cache_dir (str): Directory to cache the data.
+
+        Returns:
+            dict: A dictionary with symbols as keys and DataFrames with daily prices as values.
+        """
+        results = {}
+        for symbol in symbol_list:
+            print(f"Now fetching earnings estimate data for {symbol}...")
+            df = self.fetch_analyst_earnings_estimates(symbol, period, limit)
+            if df is not None:
+                results[symbol] = df
+            else:
+                print(f"Failed to fetch data for {symbol}")
+        return results
+
+    def fetch_earnings_surprises(self, symbol: str) -> Union[pd.DataFrame, None]:
+        """
+        Fetches earnings surprises data from the FMP API.
+
+        Parameters:
+            symbol (str): Stock symbol.
+
+        Returns:
+            pd.DataFrame: DataFrame with earnings surprises data or None if the request fails.
+        """
+        try:
+            url = f"https://financialmodelingprep.com/api/v3/earnings-surprises/{symbol}?apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    surprises_df = pd.DataFrame(data)
+                    if len(surprises_df) > 0:
+                        # Convert date to pd format
+                        surprises_df['date'] = pd.to_datetime(surprises_df['date'])
+                        # Sort by date
+                        surprises_df.sort_values(by="date", ascending=True)
+                    return surprises_df
+                else:
+                    print(f"No data found for {symbol}.")
+                    return None
+            else:
+                print(f"Failed to fetch earnings surprises. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_price_targets(self, symbol: str, cache_data: bool = False,
+                            cache_dir: str = "cache") -> pd.DataFrame:
+        """
+        Fetches price targets from the FMP API.
+
+        Parameters:
+            symbol (str): Stock symbol.
+            cache_data (bool): Flag to specify if data should be cached.
+            cache_dir (str): Directory to cache the data.
+
+        Returns:
+            pd.DataFrame: DataFrame with price targets.
+        """
+
+        file_name = f"{symbol}-price-targets.csv"
+        path = os.path.join(cache_dir, file_name)
+        if cache_data is True:
+            if os.path.exists(path) is True:
+                price_targets_df = pd.read_csv(path)
+                price_targets_df['publishedDate'] = pd.to_datetime(price_targets_df['publishedDate'])
+                return price_targets_df
+
+        try:
+            url = f"https://financialmodelingprep.com/api/v4/price-target?symbol={symbol}&apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    price_targets_df = pd.DataFrame(data)
+                    price_targets_df['publishedDate'] = pd.to_datetime(price_targets_df['publishedDate'])
+                    price_targets_df.sort_values(by=['publishedDate'], ascending=True, inplace=True)
+
+                    if cache_data is True:
+                        os.makedirs(cache_dir, exist_ok=True)
+                        price_targets_df.to_csv(path)
+                    return price_targets_df
+                else:
+                    return None
+            else:
+                print(f"Failed to fetch price targets. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_multiple_price_targets_by_date(self, symbol_list: list,
+                                             cache_data: bool = False, cache_dir: str = "cache") -> dict:
+        """
+        Fetches price targets by date for multiple symbols from the FMP API.
+
+        Parameters:
+            symbol_list (list): List of stock symbols.
+            cache_data (bool): Flag to specify if data should be cached.
+            cache_dir (str): Directory to cache the data.
+
+        Returns:
+            dict: A dictionary with symbols as keys and DataFrames with price targets as values.
+        """
+        results = {}
+        for symbol in symbol_list:
+            #print(f"Now fetching price target data for {symbol}...")
+            df = self.fetch_price_targets(symbol, cache_data, cache_dir)
+            if df is not None:
+                results[symbol] = df
+            else:
+                print(f"Failed to fetch price target data for {symbol}")
+        return results
