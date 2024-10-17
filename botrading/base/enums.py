@@ -117,27 +117,6 @@ class TimeZone(Enum):
     UNKNOWN = 'UNKNOWN'
 
 
-class TiingoIntradayInterval(Enum):
-    """
-    Enum for different Tiingo intraday resample intervals.
-    """
-    MIN_1 = '1min'
-    MIN_5 = '5min'
-    MIN_15 = '15min'
-    MIN_30 = '30min'
-    HOUR_1 = '1hour'
-    HOUR_4 = '4hour'
-    DAY_1 = '1day'
-
-class TiingoDailyInterval(Enum):
-    """
-    Enum for different daily Tiingo resample intervals.
-    """
-    DAILY = 'daily'
-    WEEKLY = 'weekly'
-    MONTYLY = 'monthly'
-    ANNUALLY = 'annually'
-
 class YahooInterval(Enum):
     """
     Enum for different Yahoo data intervals.

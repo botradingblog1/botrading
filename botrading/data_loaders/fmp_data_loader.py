@@ -191,7 +191,7 @@ class FmpDataLoader:
             if response.status_code == 200:
                 data = response.json()
                 historical_data = data.get('historical', [])
-                if historical_data:
+                if historical_data and len(historical_data) > 0:
                     prices_df = pd.DataFrame(historical_data)
                     prices_df = standardize_ohlcv_dataframe(prices_df)
                     prices_df['date'] = pd.to_datetime(prices_df['date'])
@@ -823,7 +823,7 @@ class FmpDataLoader:
             print(ex)
             return None
 
-    def fetch_multiple_price_targets_by_date(self, symbol_list: list,
+    def fetch_multiple_price_targets(self, symbol_list: list,
                                              cache_data: bool = False, cache_dir: str = "cache") -> dict:
         """
         Fetches price targets by date for multiple symbols from the FMP API.
