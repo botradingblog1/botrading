@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 from ..utils.df_utils import standardize_ohlcv_dataframe
 from typing import Union
+from datetime import datetime, timedelta
 
 
 class FmpDataLoader:
@@ -131,6 +132,57 @@ class FmpDataLoader:
                 return None
         except Exception as ex:
             print(ex)
+            return None
+
+    def fetch_full_realtime_prices(self) -> pd.DataFrame:
+        """
+        Fetches full real-time prices from the FMP API.
+
+        Parameters:
+            None
+        Returns:
+            pd.DataFrame: DataFrame with prices for the specified symbols.
+        """
+        try:
+            # Make the API request for the current batch
+            url = f"https://financialmodelingprep.com/api/v3/stock/full/real-time-price?apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    prices_df = pd.DataFrame(data)
+
+                    # Convert timestamp to datetime
+                    prices_df['date'] = pd.to_datetime(prices_df['lastUpdated'], unit='ms', errors='coerce')
+
+                    # Sort values by date and symbol
+                    prices_df.sort_values(by=['date', 'symbol'], ascending=[True, True], inplace=True)
+                    return prices_df
+                else:
+                    print(f"No data returned from FMP for full prices.")
+            else:
+                print(f"Failed to fetch full prices. Error: {response.reason}")
+
+        except Exception as ex:
+            print(f"An error occurred while fetching full realtime prices: {ex}")
+        return None
+
+
+    def fetch_company_outlook(self, symbol):
+        try:
+            url = f"https://financialmodelingprep.com/api/v4/company-outlook?symbol={symbol}&apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code != 200:
+                print(f"Failed to get company profile for {symbol}")
+                return None
+
+            data_json = response.json()
+            if data_json is None:
+                print(f"No company profile for {symbol}")
+                return None
+            return data_json
+        except Exception as ex:
+            print(str(ex))
             return None
 
     def fetch_dividend_calendar(self, start_date_str: str, end_date_str: str) -> pd.DataFrame:
@@ -361,9 +413,8 @@ class FmpDataLoader:
         except Exception as ex:
             print(ex)
             return None
-    
-    
-    def get_analyst_ratings(self, symbol):
+
+    def fetch_analyst_ratings(self, symbol, cache_data=False, cache_dir="cache"):
         """
         Get analyst ratings for a given stock symbol.
     
@@ -373,6 +424,16 @@ class FmpDataLoader:
         Returns:
         - pd.DataFrame: DataFrame containing the analyst ratings data, or None if no data is found.
         """
+        today_str = datetime.today().strftime("%Y-%m-%d")
+        file_name = f"{symbol}-{today_str}-analyst_ratings.csv"
+        path = os.path.join(cache_dir, file_name)
+        if cache_data is True:
+            if os.path.exists(path) is True:
+                grades_df = pd.read_csv(path)
+                grades_df['date'] = pd.to_datetime(grades_df['date'], errors='coerce')
+                return grades_df
+
+        # If not in local cache, load remotely
         try:
             url = f"https://financialmodelingprep.com/api/v3/grade/{symbol}?apikey={self._api_key}"
             response = requests.get(url)
@@ -384,6 +445,9 @@ class FmpDataLoader:
                     grades_df['date'] = pd.to_datetime(grades_df['date'], errors='coerce')
                     # Filter out invalid dates (NaT values after conversion)
                     grades_df = grades_df.dropna(subset=['date'])
+
+                    if not grades_df.empty:
+                        grades_df.to_csv(path)
     
                     return grades_df
                 return None
@@ -413,6 +477,35 @@ class FmpDataLoader:
                 growth_data = response.json()
                 if growth_data:
                     growth_df = pd.DataFrame(growth_data)
+                    growth_df['date'] = pd.to_datetime(growth_df['date'], errors='coerce')
+                    return growth_df
+                return None
+            else:
+                return None
+        except Exception as ex:
+            print(ex)
+            return None
+
+    def fetch_income_statement(self, symbol, period='annual'):
+        """
+        Get income statement data for a given stock symbol.
+
+        Parameters:
+        - symbol (str): Stock symbol.
+        - period (str): Reporting period, either 'annual' or 'quarterly' (default: 'annual').
+
+        Returns:
+        - pd.DataFrame: DataFrame containing the income statement data, or None if no data is found.
+        """
+        try:
+            url = f"https://financialmodelingprep.com/api/v3/income-statement/{symbol}?period={period}&apikey={self._api_key}"
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                growth_data = response.json()
+                if growth_data:
+                    growth_df = pd.DataFrame(growth_data)
+                    growth_df['date'] = pd.to_datetime(growth_df['date'], errors='coerce')
                     return growth_df
                 return None
             else:
@@ -532,10 +625,19 @@ class FmpDataLoader:
             print(ex)
             return None
 
-    def fetch_institutional_ownership_changes(self, symbol, include_current_quarter=True):
+    def fetch_institutional_ownership_changes(self, symbol, cache_data=False, cache_dir="cache"):
         try:
-            url = f"https://financialmodelingprep.com/api/v4/institutional-ownership/symbol-ownership?symbol={symbol}&includeCurrentQuarter={str(include_current_quarter)}&apikey={self._api_key}"
+            url = f"https://financialmodelingprep.com/api/v4/institutional-ownership/symbol-ownership?symbol={symbol}&includeCurrentQuarter=true&apikey={self._api_key}"
             response = requests.get(url)
+
+            today_str = datetime.today().strftime("%Y-%m-%d")
+            file_name = f"{symbol}-institutional-ownership-{today_str}.csv"
+            path = os.path.join(cache_dir, file_name)
+            if cache_data is True:
+                if os.path.exists(path) is True:
+                    inst_own_df = pd.read_csv(path)
+                    inst_own_df['date'] = pd.to_datetime(inst_own_df['date'])
+                    return inst_own_df
 
             if response.status_code == 200:
                 data = response.json()
@@ -569,6 +671,10 @@ class FmpDataLoader:
                         investors_holding_change = 0
                     inst_own_df['totalInvestedChange'] = total_invested_percent_change
                     inst_own_df['investorsHoldingChange'] = investors_holding_change
+
+                    if cache_data is True:
+                        os.makedirs(cache_dir, exist_ok=True)
+                        inst_own_df.to_csv(path)
 
                     return inst_own_df
                 return None
@@ -808,6 +914,8 @@ class FmpDataLoader:
                 if data:
                     price_targets_df = pd.DataFrame(data)
                     price_targets_df['publishedDate'] = pd.to_datetime(price_targets_df['publishedDate'])
+                    price_targets_df['publishedDate'] = pd.to_datetime(price_targets_df['publishedDate']).dt.tz_localize(
+                        None)
                     price_targets_df.sort_values(by=['publishedDate'], ascending=True, inplace=True)
 
                     if cache_data is True:
@@ -845,3 +953,93 @@ class FmpDataLoader:
             else:
                 print(f"Failed to fetch price target data for {symbol}")
         return results
+
+    def fetch_batch_real_time_data(self, symbols: list) -> pd.DataFrame:
+        """
+        Fetches batch real time price from the FMP API.
+
+        Parameters:
+            symbols (list): List of stock symbols.
+
+        Returns:
+            pd.DataFrame: DataFrame with prices for the specified symbols.
+        """
+
+        symbol_str = ",".join(symbols)
+        try:
+            url = f"https://financialmodelingprep.com/api/v3/stock/full/real-time-price/{symbol_str}?apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    # Convert JSON data to DataFrame
+                    prices_df = pd.DataFrame(data)
+
+                    # Convert timestamp to datetime
+                    prices_df['date'] = pd.to_datetime(prices_df['lastSaleTime'], unit='ms', errors='coerce')
+
+                    # Rename lastSalePrice column to 'close' for consistency
+                    prices_df.rename(columns={'lastSalePrice': 'close'}, inplace=True)
+
+                    # Calculate bid/ask spread
+                    prices_df['bid_ask_spread'] = prices_df['askPrice'] - prices_df['bidPrice']
+
+                    # Calculate mid-price and spread percentage
+                    prices_df['mid_price'] = (prices_df['askPrice'] + prices_df['bidPrice']) / 2
+                    prices_df['bid_ask_spread_pct'] = prices_df['bid_ask_spread'] / prices_df['mid_price']
+
+                    # Sort values by date and symbol (optional, for easier reading)
+                    prices_df.sort_values(by=['date', 'symbol'], ascending=[True, True], inplace=True)
+
+                    return prices_df
+                else:
+                    print("No data found for the specified symbols.")
+                    return None
+            else:
+                print(f"Failed to fetch prices. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(f"An error occurred: {ex}")
+            return None
+
+    def fetch_batch_pre_post_trade_data(self, symbols: list) -> pd.DataFrame:
+        """
+        Fetches batch pre-market and post trade prices from the FMP API.
+
+        Parameters:
+            symbols (list): List of stock symbols.
+
+        Returns:
+            pd.DataFrame: DataFrame with pre/post-market prices for the specified symbols.
+        """
+
+        symbol_str = ",".join(symbols)
+        try:
+            url = f"https://financialmodelingprep.com/api/v4/batch-pre-post-market-trade/{symbol_str}?apikey={self._api_key}"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    # Convert JSON data to DataFrame
+                    prices_df = pd.DataFrame(data)
+
+                    # Convert timestamp to datetime
+                    try:
+                        prices_df['date'] = pd.to_datetime(prices_df['timestamp'], unit='ms', errors='coerce')
+                    except Exception as e:
+                        print(f"Error converting timestamps: {e}")
+                        prices_df['date'] = pd.NaT
+
+                    # Sort values by date and symbol (optional, for easier reading)
+                    prices_df.sort_values(by=['date', 'symbol'], ascending=[True, True], inplace=True)
+
+                    return prices_df
+                else:
+                    print("No data found for the specified symbols.")
+                    return None
+            else:
+                print(f"Failed to fetch prices. Error: {response.reason}")
+                return None
+        except Exception as ex:
+            print(f"An error occurred: {ex}")
+            return None

@@ -14,6 +14,7 @@ class TiingoIntradayInterval(Enum):
     """
     MIN_1 = '1min'
     MIN_5 = '5min'
+    MIN_10 = '10min'
     MIN_15 = '15min'
     MIN_30 = '30min'
     HOUR_1 = '1hour'
@@ -118,8 +119,24 @@ class TiingoDataLoader:
             prices_df = self.fetch_intraday_prices(symbol, start_date_str, end_date_str,
                                                                  interval, cache_data=cache_data,
                                                                  cache_dir=cache_dir)
+            prices_df.reset_index(inplace=True)
+            prices_df['date'] = pd.to_datetime(prices_df['date'], errors="coerce")
             prices_dict[symbol] = prices_df
         return prices_dict
+
+    def fetch_multiple_intraday_prices_as_df(self, symbol_list: List[str], start_date_str: str, end_date_str: str, interval: TiingoIntradayInterval, cache_data=False, cache_dir="cache") -> pd.DataFrame:
+        combined_prices_df = pd.DataFrame()
+        for symbol in symbol_list:
+            print(f"Fetching prices for {symbol}")
+            # fetch prices
+            prices_df = self.fetch_intraday_prices(symbol, start_date_str, end_date_str,
+                                                                 interval, cache_data=cache_data,
+                                                                 cache_dir=cache_dir)
+            prices_df['symbol'] = symbol
+            prices_df.reset_index(inplace=True)
+            prices_df['date'] = pd.to_datetime(prices_df['date'], errors="coerce")
+            combined_prices_df = pd.concat([combined_prices_df, prices_df], axis=0, ignore_index=True)
+        return combined_prices_df
 
     def fetch_end_of_day_prices(self, symbol: str, start_date: str, end_date: str, interval: TiingoDailyInterval, cache_data = False, cache_dir: str = "cache") -> pd.DataFrame:
         """

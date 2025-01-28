@@ -71,7 +71,7 @@ class MarketSymbolLoader:
             DataFrame: dataframe with list of symbols and additional info.
         """
         wiki_url = 'https://en.wikipedia.org/wiki/Russell_1000_Index'
-        return self._fetch_symbols(wiki_url, 2, cache_file, cache_dir, file_name, 'Symbol')
+        return self._fetch_symbols(wiki_url, 3, cache_file, cache_dir, file_name, 'Symbol')
 
     def _fetch_symbols(self, url, table_index, cache_file, cache_dir, file_name, ticker_column):
         try:

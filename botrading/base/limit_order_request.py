@@ -3,12 +3,19 @@ from botrading.base.enums import OrderSide, TimeInForce
 
 
 class LimitOrderRequest(OrderRequest):
-    def __init__(self, symbol: str, quantity: int, side: OrderSide, limit_price: float, time_in_force: TimeInForce):
+    def __init__(self,
+                 symbol: str,
+                 quantity: int,
+                 side: OrderSide,
+                 limit_price: float,
+                 time_in_force: TimeInForce,
+                 extended_hours: bool = False):
         self.symbol = symbol
         self.quantity = quantity
         self.side = side
         self.limit_price = limit_price
         self.time_in_force = time_in_force
+        self.extended_hours = extended_hours
 
     def to_dict(self):
         return {
@@ -16,6 +23,7 @@ class LimitOrderRequest(OrderRequest):
             'quantity': self.quantity,
             'side': self.side,
             'limit_price': self.limit_price,
-            'time_in_force': self.time_in_force
+            'time_in_force': self.time_in_force,
+            'extended_hours': self.extended_hours
         }
 
