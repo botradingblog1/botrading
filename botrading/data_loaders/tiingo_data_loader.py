@@ -119,6 +119,8 @@ class TiingoDataLoader:
             prices_df = self.fetch_intraday_prices(symbol, start_date_str, end_date_str,
                                                                  interval, cache_data=cache_data,
                                                                  cache_dir=cache_dir)
+            if prices_df is None or len(prices_df) == 0:
+                continue
             prices_df.reset_index(inplace=True)
             prices_df['date'] = pd.to_datetime(prices_df['date'], errors="coerce")
             prices_dict[symbol] = prices_df
@@ -129,9 +131,14 @@ class TiingoDataLoader:
         for symbol in symbol_list:
             print(f"Fetching prices for {symbol}")
             # fetch prices
-            prices_df = self.fetch_intraday_prices(symbol, start_date_str, end_date_str,
-                                                                 interval, cache_data=cache_data,
-                                                                 cache_dir=cache_dir)
+            prices_df = self.fetch_intraday_prices(symbol,
+                                                   start_date_str,
+                                                   end_date_str,
+                                                   interval,
+                                                   cache_data=cache_data,
+                                                   cache_dir=cache_dir)
+            if prices_df is None or len(prices_df) == 0:
+                continue
             prices_df['symbol'] = symbol
             prices_df.reset_index(inplace=True)
             prices_df['date'] = pd.to_datetime(prices_df['date'], errors="coerce")
@@ -170,6 +177,8 @@ class TiingoDataLoader:
                 data = response.json()
 
                 prices_df = pd.DataFrame(data)
+                if prices_df is None or len(prices_df) == 0:
+                    return None
                 prices_df.rename(columns={"adjClose": "adj_close"}, inplace=True)
                 """
                 for row in data:
